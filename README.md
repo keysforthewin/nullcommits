@@ -35,6 +35,26 @@ Save your OpenAI API key to `~/.nullcommitsrc`:
 nullcommits config set-key sk-your-api-key-here
 ```
 
+### `nullcommits config set-diff-budget <budget>`
+
+Set the maximum characters for diff collection (default: 128K). Supports K suffix:
+
+```bash
+# Set to 256,000 characters
+nullcommits config set-diff-budget 256K
+
+# Or use exact number
+nullcommits config set-diff-budget 64000
+```
+
+### `nullcommits config show-diff-budget`
+
+Show the current diff budget setting:
+
+```bash
+nullcommits config show-diff-budget
+```
+
 ### `nullcommits init`
 
 Create a global template file at `~/.nullcommits.template` that you can customize:
@@ -114,6 +134,7 @@ The template supports these variables that get replaced at runtime:
 |----------|-------------|
 | `{{ORIGINAL_MESSAGE}}` | The original commit message you provided |
 | `{{DIFF}}` | The git diff of staged changes |
+| `{{MULTI_LINE_INSTRUCTION}}` | Auto-injected when 10+ lines changed |
 
 ### Template Priority
 
@@ -124,6 +145,39 @@ Templates are loaded in this order (highest priority first):
 3. **Bundled default** - Built into nullcommits package
 
 This allows you to have a personal default template while overriding it for specific projects that need different formatting.
+
+### Diff Budget
+
+nullcommits uses intelligent diff collection to ensure large commits don't exceed API token limits. The diff budget (default: 128K characters) is divided equally among files, with unused budget redistributed to files that need more space.
+
+**Configure via CLI:**
+```bash
+nullcommits config set-diff-budget 256K
+```
+
+**Or via environment variable:**
+```bash
+export NULLCOMMITS_DIFF_BUDGET=256000
+```
+
+**Or in config file `~/.nullcommitsrc`:**
+```json
+{
+  "apiKey": "sk-your-api-key-here",
+  "diffBudget": 256000
+}
+```
+
+### Smart Diff Features
+
+- **Media file handling**: Binary files (images, videos, audio) show only filenames, not diff content
+- **Budget redistribution**: Files with smaller diffs share their unused budget with larger files
+- **Multi-line commits**: When 10+ lines are changed, the AI is instructed to create detailed multi-line commit messages
+
+**Supported media extensions (filename only, no diff):**
+- Images: `.png`, `.gif`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.ico`, `.bmp`, `.tiff`, `.tif`, `.avif`
+- Video: `.mp4`, `.mov`, `.avi`, `.mkv`, `.webm`, `.wmv`, `.flv`, `.m4v`
+- Audio: `.mp3`, `.wav`, `.ogg`, `.flac`, `.aac`, `.m4a`, `.wma`
 
 ## Usage
 
@@ -199,10 +253,17 @@ The hook is already active in this repository. No action needed!
 
 | File | Purpose |
 |------|---------|
-| `~/.nullcommitsrc` | Stores your API key (JSON format) |
+| `~/.nullcommitsrc` | Stores your API key and diff budget (JSON format) |
 | `~/.nullcommits.template` | Your global custom template (created by `nullcommits init`) |
 | `.nullcommits.template` | Local project-specific template (in repo root) |
 | `.git/hooks/prepare-commit-msg` | The installed hook (per-repository) |
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | Your OpenAI API key | - |
+| `NULLCOMMITS_DIFF_BUDGET` | Max characters for diff | 128000 |
 
 ## License
 

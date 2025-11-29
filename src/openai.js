@@ -5,9 +5,10 @@ const { loadConfig, loadTemplate } = require('./config');
  * Generate an enhanced commit message using GPT-5.1
  * @param {string} originalMessage - The original commit message from the user
  * @param {string} diff - The git diff of staged changes
+ * @param {string} multiLineInstruction - Optional instruction for multi-line commits
  * @returns {Promise<string>} The AI-generated commit message
  */
-async function generateCommitMessage(originalMessage, diff) {
+async function generateCommitMessage(originalMessage, diff, multiLineInstruction = '') {
   const config = loadConfig();
   const templateResult = loadTemplate();
 
@@ -18,7 +19,8 @@ async function generateCommitMessage(originalMessage, diff) {
   // Build the prompt by combining template with actual data
   const prompt = templateResult.content
     .replace('{{ORIGINAL_MESSAGE}}', originalMessage)
-    .replace('{{DIFF}}', diff);
+    .replace('{{DIFF}}', diff)
+    .replace('{{MULTI_LINE_INSTRUCTION}}', multiLineInstruction);
 
   try {
     const completion = await openai.chat.completions.create({

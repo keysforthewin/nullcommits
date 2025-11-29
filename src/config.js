@@ -8,43 +8,59 @@ const GLOBAL_TEMPLATE_FILE = path.join(os.homedir(), '.nullcommits.template');
 const LOCAL_TEMPLATE_FILE = '.nullcommits.template';
 
 /**
+ * Default configuration values
+ */
+const DEFAULT_CONFIG = {
+  diffBudget: 128000  // 128k characters for diff budget
+};
+
+/**
  * Load configuration from environment variable or config file
  * Priority: OPENAI_API_KEY env var > ~/.nullcommitrc
- * @returns {Object} Configuration object with apiKey
+ * @returns {Object} Configuration object with apiKey, diffBudget, and other settings
  */
 function loadConfig() {
-  // First, check environment variable
-  if (process.env.OPENAI_API_KEY) {
-    return {
-      apiKey: process.env.OPENAI_API_KEY,
-      source: 'environment'
-    };
-  }
-
-  // Then, check config file
+  let config = { ...DEFAULT_CONFIG };
+  let source = 'default';
+  
+  // Load from config file if it exists
   if (fs.existsSync(CONFIG_FILE)) {
     try {
       const configContent = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      const config = JSON.parse(configContent);
-      
-      if (config.apiKey) {
-        return {
-          apiKey: config.apiKey,
-          source: 'config file'
-        };
-      }
+      const fileConfig = JSON.parse(configContent);
+      config = { ...config, ...fileConfig };
+      source = 'config file';
     } catch (error) {
       throw new Error(`Failed to parse config file ${CONFIG_FILE}: ${error.message}`);
     }
   }
 
-  throw new Error(
-    'OpenAI API key not found!\n' +
-    'Please set it using one of these methods:\n' +
-    '  1. Run: nullcommits config set-key YOUR_API_KEY\n' +
-    '  2. Set OPENAI_API_KEY environment variable\n' +
-    `  3. Create ${CONFIG_FILE} with: {"apiKey": "sk-..."}`
-  );
+  // Environment variable overrides config file for API key
+  if (process.env.OPENAI_API_KEY) {
+    config.apiKey = process.env.OPENAI_API_KEY;
+    source = config.source ? 'config file + environment' : 'environment';
+  }
+  
+  // Environment variable for diff budget override
+  if (process.env.NULLCOMMITS_DIFF_BUDGET) {
+    const envBudget = parseInt(process.env.NULLCOMMITS_DIFF_BUDGET, 10);
+    if (!isNaN(envBudget) && envBudget > 0) {
+      config.diffBudget = envBudget;
+    }
+  }
+
+  if (!config.apiKey) {
+    throw new Error(
+      'OpenAI API key not found!\n' +
+      'Please set it using one of these methods:\n' +
+      '  1. Run: nullcommits config set-key YOUR_API_KEY\n' +
+      '  2. Set OPENAI_API_KEY environment variable\n' +
+      `  3. Create ${CONFIG_FILE} with: {"apiKey": "sk-..."}`
+    );
+  }
+  
+  config.source = source;
+  return config;
 }
 
 /**
@@ -66,6 +82,40 @@ function saveApiKey(apiKey) {
   
   config.apiKey = apiKey;
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+/**
+ * Save diff budget to config file
+ * @param {number} budget - The diff budget in characters
+ */
+function saveDiffBudget(budget) {
+  let config = {};
+  
+  // Read existing config if it exists
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      const configContent = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      config = JSON.parse(configContent);
+    } catch {
+      // If parsing fails, start with empty config
+    }
+  }
+  
+  config.diffBudget = budget;
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+/**
+ * Get the current diff budget from config
+ * @returns {number} The diff budget in characters
+ */
+function getDiffBudget() {
+  try {
+    const config = loadConfig();
+    return config.diffBudget || DEFAULT_CONFIG.diffBudget;
+  } catch {
+    return DEFAULT_CONFIG.diffBudget;
+  }
 }
 
 /**
@@ -185,6 +235,8 @@ function getTemplateInstructions() {
 module.exports = {
   loadConfig,
   saveApiKey,
+  saveDiffBudget,
+  getDiffBudget,
   loadTemplate,
   initGlobalTemplate,
   hasGlobalTemplate,
@@ -193,5 +245,6 @@ module.exports = {
   getTemplateInstructions,
   CONFIG_FILE,
   GLOBAL_TEMPLATE_FILE,
-  LOCAL_TEMPLATE_FILE
+  LOCAL_TEMPLATE_FILE,
+  DEFAULT_CONFIG
 };
