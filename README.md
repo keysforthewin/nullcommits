@@ -1,3 +1,9 @@
+# Pushing p
+
+```bash
+alias p='git add *; git commit -m ""; git push'
+```
+
 # nullcommits 🚀
 
 AI-powered git commit message enhancer using GPT-5.1. Transform your simple commit messages into clear, emoji-enhanced, professional descriptions that anyone can understand.
