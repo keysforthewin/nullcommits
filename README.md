@@ -4,6 +4,8 @@
 alias p='git add *; git commit -m ""; git push'
 ```
 
+And shout out to Bud Swayze on https://kick.com/budswayze - mention my nu11y sent you for 50% off subs!
+
 # nullcommits 🚀
 
 AI-powered git commit message enhancer using GPT-5.1. Transform your simple commit messages into clear, emoji-enhanced, professional descriptions that anyone can understand.
