@@ -18,8 +18,21 @@
     "commit-message",
     "hook"
   ],
-  "author": "",
+  "author": "KeysForTheWin <steve@nonlocal.ca>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keysforthewin/nullcommits.git"
+  },
+  "homepage": "https://github.com/keysforthewin/nullcommits#readme",
+  "bugs": {
+    "url": "https://github.com/keysforthewin/nullcommits/issues"
+  },
+  "files": [
+    "bin",
+    "src",
+    "templates"
+  ],
   "dependencies": {
     "commander": "^12.1.0",
     "openai": "^6.9.1"
