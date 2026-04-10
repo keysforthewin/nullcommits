@@ -1,6 +1,6 @@
 {
   "name": "nullcommits",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4",
   "main": "bin/nullcommits.js",
   "bin": {
