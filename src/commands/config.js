@@ -1,4 +1,4 @@
-const { saveApiKey, saveDiffBudget, getDiffBudget, CONFIG_FILE, DEFAULT_CONFIG } = require('../config');
+const { saveApiKey, saveAnthropicApiKey, saveDiffBudget, getDiffBudget, CONFIG_FILE, DEFAULT_CONFIG } = require('../config');
 
 /**
  * Set the OpenAI API key in the config file
@@ -78,8 +78,31 @@ async function showDiffBudget() {
   };
 }
 
+/**
+ * Set the Anthropic API key in the config file
+ * @param {string} apiKey - The API key to save
+ */
+async function setAnthropicKey(apiKey) {
+  if (!apiKey) {
+    throw new Error('API key is required. Usage: nullcommits config set-anthropic-key YOUR_API_KEY');
+  }
+
+  // Basic validation - Anthropic keys typically start with "sk-ant-"
+  if (!apiKey.startsWith('sk-ant-')) {
+    console.log('⚠️  Warning: API key does not start with "sk-ant-". Make sure this is a valid Anthropic API key.');
+  }
+
+  saveAnthropicApiKey(apiKey);
+
+  return {
+    success: true,
+    path: CONFIG_FILE
+  };
+}
+
 module.exports = {
   setKey,
+  setAnthropicKey,
   setDiffBudget,
   showDiffBudget
 };

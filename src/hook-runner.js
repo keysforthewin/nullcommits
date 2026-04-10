@@ -1,7 +1,8 @@
 const fs = require('fs');
 const { getSmartStagedDiff } = require('./git');
-const { generateCommitMessage } = require('./openai');
-const { getDiffBudget } = require('./config');
+const { generateCommitMessage: generateWithAnthropic } = require('./anthropic');
+const { generateCommitMessage: generateWithOpenAI } = require('./openai');
+const { getDiffBudget, loadConfig } = require('./config');
 
 /**
  * Multi-line commit instruction to inject when there are many changes
@@ -51,12 +52,25 @@ async function processCommitMessage(msgFile) {
   const requireMultiLine = totalLinesChanged > 10;
   const multiLineInstruction = requireMultiLine ? MULTI_LINE_INSTRUCTION : '';
 
-  // Generate the enhanced message
-  const enhancedMessage = await generateCommitMessage(
-    originalMessage,
-    diff,
-    multiLineInstruction
-  );
+  // Generate the enhanced message with provider fallback
+  const config = loadConfig();
+  let enhancedMessage;
+
+  if (config.anthropicApiKey) {
+    try {
+      enhancedMessage = await generateWithAnthropic(originalMessage, diff, multiLineInstruction);
+    } catch (anthropicError) {
+      if (config.apiKey) {
+        console.error(`⚠️  Anthropic API failed: ${anthropicError.message}`);
+        console.error('   Falling back to OpenAI...');
+        enhancedMessage = await generateWithOpenAI(originalMessage, diff, multiLineInstruction);
+      } else {
+        throw anthropicError;
+      }
+    }
+  } else {
+    enhancedMessage = await generateWithOpenAI(originalMessage, diff, multiLineInstruction);
+  }
   
   // Write the enhanced message back to the file
   fs.writeFileSync(msgFile, enhancedMessage, 'utf-8');

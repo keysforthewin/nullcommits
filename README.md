@@ -8,7 +8,7 @@ And shout out to Bud Swayze on https://kick.com/budswayze - mention my nu11y sen
 
 # nullcommits 🚀
 
-AI-powered git commit message enhancer using GPT-5.1. Transform your simple commit messages into clear, emoji-enhanced, professional descriptions that anyone can understand.
+AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4. Transform your simple commit messages into clear, emoji-enhanced, professional descriptions that anyone can understand.
 
 ## Installation
 
@@ -19,8 +19,9 @@ npm install -g nullcommits
 ## Quick Start
 
 ```bash
-# 1. Set your OpenAI API key
-nullcommits config set-key sk-your-api-key-here
+# 1. Set your API key (Anthropic recommended, OpenAI also supported)
+nullcommits config set-anthropic-key sk-ant-your-api-key-here
+# OR: nullcommits config set-key sk-your-openai-key-here
 
 # 2. (Optional) Create a customizable template
 nullcommits init
@@ -34,6 +35,14 @@ git commit -m "fix bug"
 ```
 
 ## Commands
+
+### `nullcommits config set-anthropic-key <apiKey>`
+
+Save your Anthropic API key to `~/.nullcommitsrc`. When set, Claude Sonnet is used as the primary AI provider with automatic fallback to OpenAI if the Anthropic call fails:
+
+```bash
+nullcommits config set-anthropic-key sk-ant-your-api-key-here
+```
 
 ### `nullcommits config set-key <apiKey>`
 
@@ -92,11 +101,25 @@ nullcommits uninstall
 
 ## Configuration
 
-### API Key
+### API Keys
 
-You have three options to configure your OpenAI API key:
+nullcommits supports two AI providers. When both keys are configured, **Claude Sonnet is used by default** with automatic fallback to OpenAI if the Anthropic call fails.
 
-**Option A: CLI Command (Recommended)**
+#### Anthropic (Recommended)
+
+**Option A: CLI Command**
+```bash
+nullcommits config set-anthropic-key sk-ant-your-api-key-here
+```
+
+**Option B: Environment Variable**
+```bash
+export ANTHROPIC_API_KEY="sk-ant-your-api-key-here"
+```
+
+#### OpenAI
+
+**Option A: CLI Command**
 ```bash
 nullcommits config set-key sk-your-api-key-here
 ```
@@ -106,19 +129,21 @@ nullcommits config set-key sk-your-api-key-here
 export OPENAI_API_KEY="sk-your-api-key-here"
 ```
 
-Add this to your `~/.bashrc`, `~/.zshrc`, or shell profile to make it permanent.
+Add environment variables to your `~/.bashrc`, `~/.zshrc`, or shell profile to make them permanent.
 
-**Option C: Config File (Manual)**
+**Config File (Manual)**
+
 Create/edit `~/.nullcommitsrc`:
 ```json
 {
-  "apiKey": "sk-your-api-key-here"
+  "anthropicApiKey": "sk-ant-your-api-key-here",
+  "apiKey": "sk-your-openai-key-here"
 }
 ```
 
 ### Template Customization
 
-nullcommits uses a template to instruct GPT-5.1 how to generate commit messages. You can customize this at both global and local (per-project) levels!
+nullcommits uses a template to instruct the AI how to generate commit messages. You can customize this at both global and local (per-project) levels!
 
 **Create a global template:**
 ```bash
@@ -196,7 +221,7 @@ git add .
 git commit -m "fix bug"
 ```
 
-nullcommits will automatically enhance your commit message using GPT-5.1. Your simple "fix bug" might become:
+nullcommits will automatically enhance your commit message using Claude Sonnet (or GPT-5.4 as fallback). Your simple "fix bug" might become:
 
 ```
 🐛 Fix critical authentication bypass vulnerability
@@ -211,7 +236,7 @@ to ensure all authentication attempts are properly validated.
 1. You run `git commit -m "your message"`
 2. Git triggers the `prepare-commit-msg` hook
 3. nullcommits reads your message and the staged diff
-4. GPT-5.1 generates an enhanced message with:
+4. Claude Sonnet (or GPT-5.4 fallback) generates an enhanced message with:
    - Relevant emoji
    - Clear, descriptive summary
    - Explanation of what changed and why
@@ -236,15 +261,15 @@ npm uninstall -g nullcommits
 
 - Node.js 18.0.0 or higher
 - Git
-- OpenAI API key (with access to GPT-5.1)
+- Anthropic API key (recommended) and/or OpenAI API key
 
 ## Troubleshooting
 
-### "OpenAI API key not found"
-Set your API key using one of these methods:
-- Run: `nullcommits config set-key YOUR_API_KEY`
-- Set `OPENAI_API_KEY` environment variable
-- Create `~/.nullcommitsrc` with your key
+### "No API key found"
+Set at least one API key:
+- Run: `nullcommits config set-anthropic-key YOUR_KEY` (recommended)
+- Or: `nullcommits config set-key YOUR_OPENAI_KEY`
+- Or set `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` environment variable
 
 ### "Not a git repository"
 Run `nullcommits install` from inside a git repository.
@@ -255,13 +280,13 @@ The hook is already active in this repository. No action needed!
 ### API errors
 - Verify your API key is valid
 - Check you have sufficient API quota
-- Ensure you have access to the GPT-5.1 model
+- If Anthropic fails, nullcommits will automatically fall back to OpenAI (if configured)
 
 ## File Locations
 
 | File | Purpose |
 |------|---------|
-| `~/.nullcommitsrc` | Stores your API key and diff budget (JSON format) |
+| `~/.nullcommitsrc` | Stores your API keys and diff budget (JSON format) |
 | `~/.nullcommits.template` | Your global custom template (created by `nullcommits init`) |
 | `.nullcommits.template` | Local project-specific template (in repo root) |
 | `.git/hooks/prepare-commit-msg` | The installed hook (per-repository) |
@@ -270,7 +295,8 @@ The hook is already active in this repository. No action needed!
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OPENAI_API_KEY` | Your OpenAI API key | - |
+| `ANTHROPIC_API_KEY` | Your Anthropic API key (preferred) | - |
+| `OPENAI_API_KEY` | Your OpenAI API key (fallback) | - |
 | `NULLCOMMITS_DIFF_BUDGET` | Max characters for diff | 128000 |
 
 ## License
