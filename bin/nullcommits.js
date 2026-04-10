@@ -4,13 +4,13 @@ const { program } = require('commander');
 const { install } = require('../src/commands/install');
 const { uninstall } = require('../src/commands/uninstall');
 const { init } = require('../src/commands/init');
-const { setKey, setDiffBudget, showDiffBudget } = require('../src/commands/config');
+const { setKey, setAnthropicKey, setDiffBudget, showDiffBudget } = require('../src/commands/config');
 const { processCommitMessage } = require('../src/hook-runner');
 const { GLOBAL_TEMPLATE_FILE, getTemplateInstructions } = require('../src/config');
 
 program
   .name('nullcommits')
-  .description('AI-powered git commit message enhancer using GPT-5.1')
+  .description('AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4')
   .version('1.0.0');
 
 program
@@ -81,6 +81,22 @@ configCmd
       const result = await setKey(apiKey);
       console.log('✅ API key saved successfully!');
       console.log(`   Config file: ${result.path}`);
+    } catch (error) {
+      console.error('❌ Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+configCmd
+  .command('set-anthropic-key <apiKey>')
+  .description('Set your Anthropic API key (stored in ~/.nullcommitsrc)')
+  .action(async (apiKey) => {
+    try {
+      const result = await setAnthropicKey(apiKey);
+      console.log('✅ Anthropic API key saved successfully!');
+      console.log(`   Config file: ${result.path}`);
+      console.log('');
+      console.log('💡 Claude Sonnet will now be used as the primary AI provider.');
     } catch (error) {
       console.error('❌ Error:', error.message);
       process.exit(1);

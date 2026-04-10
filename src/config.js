@@ -40,7 +40,13 @@ function loadConfig() {
     config.apiKey = process.env.OPENAI_API_KEY;
     source = config.source ? 'config file + environment' : 'environment';
   }
-  
+
+  // Environment variable overrides config file for Anthropic API key
+  if (process.env.ANTHROPIC_API_KEY) {
+    config.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+    source = config.source ? 'config file + environment' : 'environment';
+  }
+
   // Environment variable for diff budget override
   if (process.env.NULLCOMMITS_DIFF_BUDGET) {
     const envBudget = parseInt(process.env.NULLCOMMITS_DIFF_BUDGET, 10);
@@ -49,16 +55,20 @@ function loadConfig() {
     }
   }
 
-  if (!config.apiKey) {
+  if (!config.apiKey && !config.anthropicApiKey) {
     throw new Error(
-      'OpenAI API key not found!\n' +
-      'Please set it using one of these methods:\n' +
-      '  1. Run: nullcommits config set-key YOUR_API_KEY\n' +
-      '  2. Set OPENAI_API_KEY environment variable\n' +
-      `  3. Create ${CONFIG_FILE} with: {"apiKey": "sk-..."}`
+      'No API key found!\n' +
+      'Please set at least one using these methods:\n' +
+      '  Anthropic (preferred):\n' +
+      '    1. Run: nullcommits config set-anthropic-key YOUR_API_KEY\n' +
+      '    2. Set ANTHROPIC_API_KEY environment variable\n' +
+      '  OpenAI:\n' +
+      '    1. Run: nullcommits config set-key YOUR_API_KEY\n' +
+      '    2. Set OPENAI_API_KEY environment variable\n' +
+      `  Or create ${CONFIG_FILE} with: {"anthropicApiKey": "sk-ant-...", "apiKey": "sk-..."}`
     );
   }
-  
+
   config.source = source;
   return config;
 }
@@ -69,7 +79,7 @@ function loadConfig() {
  */
 function saveApiKey(apiKey) {
   let config = {};
-  
+
   // Read existing config if it exists
   if (fs.existsSync(CONFIG_FILE)) {
     try {
@@ -79,8 +89,29 @@ function saveApiKey(apiKey) {
       // If parsing fails, start with empty config
     }
   }
-  
+
   config.apiKey = apiKey;
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+/**
+ * Save Anthropic API key to config file
+ * @param {string} apiKey - The Anthropic API key to save
+ */
+function saveAnthropicApiKey(apiKey) {
+  let config = {};
+
+  // Read existing config if it exists
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      const configContent = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      config = JSON.parse(configContent);
+    } catch {
+      // If parsing fails, start with empty config
+    }
+  }
+
+  config.anthropicApiKey = apiKey;
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
 }
 
@@ -235,6 +266,7 @@ function getTemplateInstructions() {
 module.exports = {
   loadConfig,
   saveApiKey,
+  saveAnthropicApiKey,
   saveDiffBudget,
   getDiffBudget,
   loadTemplate,

@@ -1,8 +1,8 @@
-const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const { loadConfig, loadTemplate } = require('./config');
 
 /**
- * Generate an enhanced commit message using GPT-5.4
+ * Generate an enhanced commit message using Claude Sonnet
  * @param {string} originalMessage - The original commit message from the user
  * @param {string} diff - The git diff of staged changes
  * @param {string} multiLineInstruction - Optional instruction for multi-line commits
@@ -12,8 +12,8 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
   const config = loadConfig();
   const templateResult = loadTemplate();
 
-  const openai = new OpenAI({
-    apiKey: config.apiKey
+  const client = new Anthropic({
+    apiKey: config.anthropicApiKey
   });
 
   // Build the prompt by combining template with actual data
@@ -23,13 +23,11 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
     .replace('{{MULTI_LINE_INSTRUCTION}}', multiLineInstruction);
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-5.4',
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: 'You are a helpful assistant that generates clear, informative git commit messages. You respond only with the commit message itself, no explanations or markdown formatting.',
       messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that generates clear, informative git commit messages. You respond only with the commit message itself, no explanations or markdown formatting.'
-        },
         {
           role: 'user',
           content: prompt
@@ -37,22 +35,22 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
       ]
     });
 
-    const message = completion.choices[0]?.message?.content;
-    
-    if (!message) {
-      throw new Error('No response received from GPT-5.4');
+    const text = message.content[0]?.text;
+
+    if (!text) {
+      throw new Error('No response received from Claude Sonnet');
     }
 
     // Clean up the message - remove any quotes if AI wrapped it
-    return message.trim().replace(/^["']|["']$/g, '');
+    return text.trim().replace(/^["']|["']$/g, '');
   } catch (error) {
-    if (error.code === 'invalid_api_key') {
-      throw new Error('Invalid OpenAI API key. Please check your configuration.');
+    if (error.status === 401) {
+      throw new Error('Invalid Anthropic API key. Please check your configuration.');
     }
-    if (error.code === 'insufficient_quota') {
-      throw new Error('OpenAI API quota exceeded. Please check your billing.');
+    if (error.status === 429) {
+      throw new Error('Anthropic API rate limit exceeded. Please try again later.');
     }
-    throw new Error(`OpenAI API error: ${error.message}`);
+    throw new Error(`Anthropic API error: ${error.message}`);
   }
 }
 

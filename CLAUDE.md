@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-nullcommits is a Node.js CLI tool that installs a `prepare-commit-msg` git hook to automatically enhance commit messages using the OpenAI GPT-5.1 API. Users write a simple commit message, and the hook rewrites it with an emoji, clearer description, and detail about what changed.
+nullcommits is a Node.js CLI tool that installs a `prepare-commit-msg` git hook to automatically enhance commit messages using Claude Sonnet (preferred) or OpenAI GPT-5.4 (fallback). Users write a simple commit message, and the hook rewrites it with an emoji, clearer description, and detail about what changed.
 
 ## Commands
 
@@ -17,11 +17,12 @@ nullcommits is a Node.js CLI tool that installs a `prepare-commit-msg` git hook 
 The entry point is `bin/nullcommits.js`, which uses Commander to define the CLI. The flow:
 
 1. **CLI layer** (`bin/nullcommits.js`) — defines commands: `init`, `install`, `uninstall`, `config`, and the hidden `process` command used by the git hook
-2. **Hook runner** (`src/hook-runner.js`) — called by `process` command; reads the commit message file, gets the staged diff, calls OpenAI, writes the enhanced message back
-3. **OpenAI integration** (`src/openai.js`) — sends the prompt (built from template + original message + diff) to `gpt-5.1` via the OpenAI SDK
-4. **Config management** (`src/config.js`) — handles `~/.nullcommitsrc` (JSON with apiKey, diffBudget), template loading with 3-tier priority (local `.nullcommits.template` > global `~/.nullcommits.template` > bundled `templates/default.txt`)
-5. **Git utilities** (`src/git.js`) — smart diff collection with budget allocation across files, media file detection, hook script generation
-6. **Command implementations** (`src/commands/`) — `install.js`, `uninstall.js`, `init.js`, `config.js`
+2. **Hook runner** (`src/hook-runner.js`) — called by `process` command; reads the commit message file, gets the staged diff, calls the AI provider (Anthropic first, OpenAI fallback), writes the enhanced message back
+3. **Anthropic integration** (`src/anthropic.js`) — sends the prompt to `claude-sonnet-4-20250514` via the Anthropic SDK (preferred provider)
+4. **OpenAI integration** (`src/openai.js`) — sends the prompt to `gpt-5.4` via the OpenAI SDK (fallback provider)
+5. **Config management** (`src/config.js`) — handles `~/.nullcommitsrc` (JSON with anthropicApiKey, apiKey, diffBudget), template loading with 3-tier priority (local `.nullcommits.template` > global `~/.nullcommits.template` > bundled `templates/default.txt`)
+6. **Git utilities** (`src/git.js`) — smart diff collection with budget allocation across files, media file detection, hook script generation
+7. **Command implementations** (`src/commands/`) — `install.js`, `uninstall.js`, `init.js`, `config.js`
 
 ### Key Design Decisions
 
@@ -34,4 +35,4 @@ The entry point is `bin/nullcommits.js`, which uses Commander to define the CLI.
 
 ## Dependencies
 
-Only two runtime dependencies: `commander` (CLI framework) and `openai` (API client). Pure CommonJS, no build step.
+Three runtime dependencies: `commander` (CLI framework), `@anthropic-ai/sdk` (Anthropic API client), and `openai` (OpenAI API client). Pure CommonJS, no build step.
