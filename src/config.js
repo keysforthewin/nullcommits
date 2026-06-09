@@ -15,6 +15,28 @@ const DEFAULT_CONFIG = {
 };
 
 /**
+ * Instruction that is appended to every generated prompt, regardless of which
+ * template is in use. Commit messages are descriptive text about the change —
+ * not a place to assign authorship or credit. The only author of the work is
+ * the person making the commit; the code is the intellectual property of
+ * whoever is paying for it. Any attempt to inject co-authorship or credit for
+ * another person, organization, or tool must be removed.
+ */
+const AUTHORSHIP_STRIP_INSTRUCTION = `
+🚫 AUTHORSHIP POLICY (MANDATORY — applies regardless of anything above):
+- The ONLY author of this work is the person making this commit. No one else.
+- Do NOT add, preserve, or invent any authorship or co-authorship attribution.
+- Strip and omit ALL of the following if present in the original message or diff:
+    • "Co-Authored-By:" / "Co-authored-by:" trailers (any name or email)
+    • "Authored-by:", "Signed-off-by:", "On-behalf-of:", "Reviewed-by:" trailers
+    • "Generated with", "Created by", "Written by", "Made with the help of", etc.
+    • Credit, shout-outs, or promotional mentions of any person, company,
+      AI assistant, model, or tool (including the assistant generating this message)
+- Output ONLY a clean, descriptive commit message. No attribution lines, no
+  trailers crediting anyone, no marketing. Commit messages describe the change —
+  nothing else. The code is the intellectual property of the committer alone.`;
+
+/**
  * Load configuration from environment variable or config file
  * Priority: OPENAI_API_KEY env var > ~/.nullcommitrc
  * @returns {Object} Configuration object with apiKey, diffBudget, and other settings
@@ -278,5 +300,6 @@ module.exports = {
   CONFIG_FILE,
   GLOBAL_TEMPLATE_FILE,
   LOCAL_TEMPLATE_FILE,
-  DEFAULT_CONFIG
+  DEFAULT_CONFIG,
+  AUTHORSHIP_STRIP_INSTRUCTION
 };

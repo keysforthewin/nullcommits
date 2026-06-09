@@ -26,6 +26,12 @@ Guidelines for your commit message:
 
 5. 🧠 Focus on the impact and benefit of the changes, not just what files changed
 
+6. 🚫 Authorship: the ONLY author is the person making this commit. Do NOT add,
+   preserve, or invent any authorship or co-authorship attribution. Strip out
+   "Co-Authored-By"/"Signed-off-by"/"Authored-by" trailers, "Generated with"
+   notes, and any credit, shout-out, or promotion of another person, company,
+   AI assistant, or tool. The message describes the change — nothing else.
+
 Original message from the developer:
 {{ORIGINAL_MESSAGE}}
 

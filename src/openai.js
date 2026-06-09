@@ -1,5 +1,5 @@
 const OpenAI = require('openai');
-const { loadConfig, loadTemplate } = require('./config');
+const { loadConfig, loadTemplate, AUTHORSHIP_STRIP_INSTRUCTION } = require('./config');
 
 /**
  * Generate an enhanced commit message using GPT-5.4
@@ -16,11 +16,14 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
     apiKey: config.apiKey
   });
 
-  // Build the prompt by combining template with actual data
+  // Build the prompt by combining template with actual data. The authorship
+  // policy is appended unconditionally so it applies no matter which template
+  // (local, global, or bundled) is in use and cannot be overridden away.
   const prompt = templateResult.content
     .replace('{{ORIGINAL_MESSAGE}}', originalMessage)
     .replace('{{DIFF}}', diff)
-    .replace('{{MULTI_LINE_INSTRUCTION}}', multiLineInstruction);
+    .replace('{{MULTI_LINE_INSTRUCTION}}', multiLineInstruction)
+    + '\n' + AUTHORSHIP_STRIP_INSTRUCTION;
 
   try {
     const completion = await openai.chat.completions.create({
@@ -28,7 +31,7 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant that generates clear, informative git commit messages. You respond only with the commit message itself, no explanations or markdown formatting.'
+          content: 'You are a helpful assistant that generates clear, informative git commit messages. You respond only with the commit message itself, no explanations or markdown formatting. The only author of the commit is the person making it: never add, preserve, or invent co-authorship, "Co-Authored-By"/"Signed-off-by" trailers, or any credit to another person, company, or tool. Strip all such attribution from the message.'
         },
         {
           role: 'user',
