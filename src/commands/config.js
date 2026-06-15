@@ -1,4 +1,4 @@
-const { saveApiKey, saveAnthropicApiKey, saveDiffBudget, getDiffBudget, CONFIG_FILE, DEFAULT_CONFIG } = require('../config');
+const { saveApiKey, saveAnthropicApiKey, saveAnthropicModel, getAnthropicModel, saveDiffBudget, getDiffBudget, CONFIG_FILE, DEFAULT_CONFIG, DEFAULT_ANTHROPIC_MODEL } = require('../config');
 
 /**
  * Set the OpenAI API key in the config file
@@ -100,9 +100,45 @@ async function setAnthropicKey(apiKey) {
   };
 }
 
+/**
+ * Set the Anthropic model in the config file
+ * @param {string} model - The model ID (e.g. claude-sonnet-4-6)
+ */
+async function setModel(model) {
+  if (!model) {
+    throw new Error('Model is required. Usage: nullcommits config set-model claude-sonnet-4-6');
+  }
+
+  if (!model.startsWith('claude-')) {
+    console.log('⚠️  Warning: model does not start with "claude-". Make sure this is a valid Anthropic model ID.');
+  }
+
+  saveAnthropicModel(model);
+
+  return {
+    success: true,
+    model,
+    path: CONFIG_FILE
+  };
+}
+
+/**
+ * Show the current Anthropic model
+ */
+async function showModel() {
+  const model = getAnthropicModel();
+  return {
+    model,
+    default: DEFAULT_ANTHROPIC_MODEL,
+    isDefault: model === DEFAULT_ANTHROPIC_MODEL
+  };
+}
+
 module.exports = {
   setKey,
   setAnthropicKey,
+  setModel,
+  showModel,
   setDiffBudget,
   showDiffBudget
 };

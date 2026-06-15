@@ -4,14 +4,14 @@ const { program } = require('commander');
 const { install } = require('../src/commands/install');
 const { uninstall } = require('../src/commands/uninstall');
 const { init } = require('../src/commands/init');
-const { setKey, setAnthropicKey, setDiffBudget, showDiffBudget } = require('../src/commands/config');
+const { setKey, setAnthropicKey, setModel, showModel, setDiffBudget, showDiffBudget } = require('../src/commands/config');
 const { processCommitMessage } = require('../src/hook-runner');
 const { GLOBAL_TEMPLATE_FILE, getTemplateInstructions } = require('../src/config');
 
 program
   .name('nullcommits')
   .description('AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4')
-  .version('1.0.0');
+  .version('1.2.0');
 
 program
   .command('init')
@@ -97,6 +97,41 @@ configCmd
       console.log(`   Config file: ${result.path}`);
       console.log('');
       console.log('💡 Claude Sonnet will now be used as the primary AI provider.');
+    } catch (error) {
+      console.error('❌ Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+configCmd
+  .command('set-model <model>')
+  .description('Set the Anthropic model (e.g. claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-8)')
+  .action(async (model) => {
+    try {
+      const result = await setModel(model);
+      console.log(`✅ Anthropic model set to ${result.model}`);
+      console.log(`   Config file: ${result.path}`);
+      console.log('');
+      console.log('💡 You can also override per-shell with NULLCOMMITS_ANTHROPIC_MODEL.');
+    } catch (error) {
+      console.error('❌ Error:', error.message);
+      process.exit(1);
+    }
+  });
+
+configCmd
+  .command('show-model')
+  .description('Show the current Anthropic model setting')
+  .action(async () => {
+    try {
+      const result = await showModel();
+      console.log(`🤖 Current Anthropic model: ${result.model}`);
+      if (result.isDefault) {
+        console.log('   (using default value)');
+      }
+      console.log('');
+      console.log('💡 Change with: nullcommits config set-model <model>');
+      console.log('   Examples: claude-sonnet-4-6, claude-haiku-4-5, claude-opus-4-8');
     } catch (error) {
       console.error('❌ Error:', error.message);
       process.exit(1);

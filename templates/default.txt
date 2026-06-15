@@ -1,5 +1,5 @@
 You are an expert at writing clear, informative git commit messages. Your task is to take the user's original commit message and the diff of changes, then generate a better, more descriptive commit message.
-{{MULTI_LINE_INSTRUCTION}}
+
 Guidelines for your commit message:
 1. 🎯 Start with a relevant emoji that matches the type of change:
    - ✨ for new features
@@ -32,10 +32,13 @@ Guidelines for your commit message:
    notes, and any credit, shout-out, or promotion of another person, company,
    AI assistant, or tool. The message describes the change — nothing else.
 
+Now generate an amazing commit message that clearly explains the changes described below.
+
+(Note: everything below this line is per-commit data. Keep the data placeholders at the end of the template so the instructions above can be served from the prompt cache.)
+
+{{MULTI_LINE_INSTRUCTION}}
 Original message from the developer:
 {{ORIGINAL_MESSAGE}}
 
 Changes being committed (diff):
 {{DIFF}}
-
-Now generate an amazing commit message that clearly explains these changes:

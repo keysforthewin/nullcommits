@@ -1,10 +1,10 @@
 {
   "name": "nullcommits",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4",
   "main": "bin/nullcommits.js",
   "bin": {
-    "nullcommits": "./bin/nullcommits.js"
+    "nullcommits": "bin/nullcommits.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -24,7 +24,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/keysforthewin/nullcommits.git"
+    "url": "git+https://github.com/keysforthewin/nullcommits.git"
   },
   "homepage": "https://github.com/keysforthewin/nullcommits#readme",
   "bugs": {

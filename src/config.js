@@ -8,6 +8,17 @@ const GLOBAL_TEMPLATE_FILE = path.join(os.homedir(), '.nullcommits.template');
 const LOCAL_TEMPLATE_FILE = '.nullcommits.template';
 
 /**
+ * Default Anthropic model used to generate commit messages.
+ * Override per-machine with the NULLCOMMITS_ANTHROPIC_MODEL env var or
+ * `nullcommits config set-model <model>` (stored in ~/.nullcommitsrc).
+ * Sonnet 4.6 is the default: ~40% cheaper and faster than Opus, with quality
+ * very close for short, structured text like commit messages. Swap to
+ * claude-haiku-4-5 for the cheapest/fastest option, or claude-opus-4-8 for max
+ * quality.
+ */
+const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+
+/**
  * Default configuration values
  */
 const DEFAULT_CONFIG = {
@@ -67,6 +78,11 @@ function loadConfig() {
   if (process.env.ANTHROPIC_API_KEY) {
     config.anthropicApiKey = process.env.ANTHROPIC_API_KEY;
     source = config.source ? 'config file + environment' : 'environment';
+  }
+
+  // Environment variable overrides config file for the Anthropic model
+  if (process.env.NULLCOMMITS_ANTHROPIC_MODEL) {
+    config.anthropicModel = process.env.NULLCOMMITS_ANTHROPIC_MODEL;
   }
 
   // Environment variable for diff budget override
@@ -168,6 +184,40 @@ function getDiffBudget() {
     return config.diffBudget || DEFAULT_CONFIG.diffBudget;
   } catch {
     return DEFAULT_CONFIG.diffBudget;
+  }
+}
+
+/**
+ * Save the Anthropic model to the config file
+ * @param {string} model - The model ID (e.g. claude-sonnet-4-6)
+ */
+function saveAnthropicModel(model) {
+  let config = {};
+
+  // Read existing config if it exists
+  if (fs.existsSync(CONFIG_FILE)) {
+    try {
+      const configContent = fs.readFileSync(CONFIG_FILE, 'utf-8');
+      config = JSON.parse(configContent);
+    } catch {
+      // If parsing fails, start with empty config
+    }
+  }
+
+  config.anthropicModel = model;
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+}
+
+/**
+ * Get the Anthropic model to use, honoring env var > config file > default
+ * @returns {string} The model ID
+ */
+function getAnthropicModel() {
+  try {
+    const config = loadConfig();
+    return config.anthropicModel || DEFAULT_ANTHROPIC_MODEL;
+  } catch {
+    return DEFAULT_ANTHROPIC_MODEL;
   }
 }
 
@@ -289,6 +339,8 @@ module.exports = {
   loadConfig,
   saveApiKey,
   saveAnthropicApiKey,
+  saveAnthropicModel,
+  getAnthropicModel,
   saveDiffBudget,
   getDiffBudget,
   loadTemplate,
@@ -301,5 +353,6 @@ module.exports = {
   GLOBAL_TEMPLATE_FILE,
   LOCAL_TEMPLATE_FILE,
   DEFAULT_CONFIG,
+  DEFAULT_ANTHROPIC_MODEL,
   AUTHORSHIP_STRIP_INSTRUCTION
 };
