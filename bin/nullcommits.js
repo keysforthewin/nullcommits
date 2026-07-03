@@ -11,7 +11,7 @@ const { GLOBAL_TEMPLATE_FILE, getTemplateInstructions } = require('../src/config
 program
   .name('nullcommits')
   .description('AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4')
-  .version('1.2.0');
+  .version(require('../package.json').version);
 
 program
   .command('init')
