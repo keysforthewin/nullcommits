@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-nullcommits is a Node.js CLI tool that installs a `prepare-commit-msg` git hook to automatically enhance commit messages using Claude Sonnet (preferred) or OpenAI GPT-5.4 (fallback). Users write a simple commit message, and the hook rewrites it with an emoji, clearer description, and detail about what changed.
+nullcommits is a Node.js CLI tool that installs a `prepare-commit-msg` git hook to automatically generate commit messages using Claude Sonnet (preferred) or OpenAI GPT-5.4 (fallback). The hook only acts when the commit message is blank (after stripping `#` comment lines) — any non-blank message, whether written by a user or a coding agent, is left untouched. Generated messages get an emoji, clear description, and detail about what changed.
 
 ## Commands
 
@@ -31,7 +31,7 @@ The entry point is `bin/nullcommits.js`, which uses Commander to define the CLI.
 - Media files (images/video/audio) are listed by name only, not diffed
 - When 10+ lines change, a multi-line instruction is injected into the prompt requesting detailed bullet-point commit messages
 - Template variables: `{{ORIGINAL_MESSAGE}}`, `{{DIFF}}`, `{{MULTI_LINE_INSTRUCTION}}`
-- Special commits (merge, revert, fixup, squash) are skipped by the hook
+- Any non-blank commit message is skipped by the hook (which also covers merge, revert, fixup, and squash commits)
 
 ## Dependencies
 
