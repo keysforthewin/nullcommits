@@ -29,13 +29,16 @@ async function processCommitMessage(msgFile) {
 
   const originalMessage = fs.readFileSync(msgFile, 'utf-8').trim();
 
-  // Skip if it looks like a merge commit or other special commit
-  if (originalMessage.startsWith('Merge ') ||
-      originalMessage.startsWith('Revert ') ||
-      originalMessage.startsWith('Human:') ||
-      originalMessage.startsWith('fixup!') ||
-      originalMessage.startsWith('squash!')) {
-    // Don't modify special commits
+  // Only generate a message when none was provided. If the user (or a
+  // coding agent) already wrote a commit message, leave it untouched.
+  // Lines starting with '#' are git comments, not user content.
+  const userContent = originalMessage
+    .split('\n')
+    .filter(line => !line.startsWith('#'))
+    .join('\n')
+    .trim();
+
+  if (userContent) {
     return;
   }
 

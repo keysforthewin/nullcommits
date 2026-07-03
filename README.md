@@ -30,8 +30,8 @@ nullcommits init
 cd your-project
 nullcommits install
 
-# 4. Commit as usual - messages are automatically enhanced!
-git commit -m "fix bug"
+# 4. Commit with a blank message - one is generated for you!
+git commit --allow-empty-message -m ""
 ```
 
 ## Commands
@@ -214,14 +214,14 @@ export NULLCOMMITS_DIFF_BUDGET=256000
 
 ## Usage
 
-Once installed, just commit as usual:
+Once installed, commit with a blank message whenever you want one generated:
 
 ```bash
 git add .
-git commit -m "fix bug"
+git commit --allow-empty-message -m ""
 ```
 
-nullcommits will automatically enhance your commit message using Claude Sonnet (or GPT-5.4 as fallback). Your simple "fix bug" might become:
+nullcommits will generate a commit message from your staged diff using Claude Sonnet (or GPT-5.4 as fallback). If you (or your coding agent) provide a non-blank message, nullcommits leaves it completely untouched — it only steps in when the message is empty. A blank commit might become:
 
 ```
 🐛 Fix critical authentication bypass vulnerability
@@ -233,14 +233,14 @@ to ensure all authentication attempts are properly validated.
 
 ## How It Works
 
-1. You run `git commit -m "your message"`
+1. You run `git commit` with a blank message
 2. Git triggers the `prepare-commit-msg` hook
-3. nullcommits reads your message and the staged diff
-4. Claude Sonnet (or GPT-5.4 fallback) generates an enhanced message with:
+3. nullcommits checks the message — if you wrote one, it exits immediately without touching it
+4. If the message is blank, it reads the staged diff and Claude Sonnet (or GPT-5.4 fallback) generates a message with:
    - Relevant emoji
    - Clear, descriptive summary
    - Explanation of what changed and why
-5. The enhanced message replaces your original
+5. The generated message is written to the commit
 6. Commit completes seamlessly
 
 ## Uninstalling
