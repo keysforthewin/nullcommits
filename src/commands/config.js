@@ -1,4 +1,17 @@
-const { saveApiKey, saveAnthropicApiKey, saveAnthropicModel, getAnthropicModel, saveDiffBudget, getDiffBudget, CONFIG_FILE, DEFAULT_CONFIG, DEFAULT_ANTHROPIC_MODEL } = require('../config');
+const {
+  saveApiKey,
+  saveAnthropicApiKey,
+  saveProviderModel,
+  getProviderModels,
+  saveProviders,
+  saveDiffBudget,
+  getDiffBudget,
+  loadConfig,
+  CONFIG_FILE,
+  DEFAULT_CONFIG,
+  DEFAULT_PROVIDERS,
+  PROVIDER_NAMES
+} = require('../config');
 
 /**
  * Set the OpenAI API key in the config file
@@ -101,36 +114,68 @@ async function setAnthropicKey(apiKey) {
 }
 
 /**
- * Set the Anthropic model in the config file
- * @param {string} model - The model ID (e.g. claude-sonnet-4-6)
+ * Set a provider's model in the config file.
+ * `set-model <model>` with no provider keeps the old meaning (anthropic).
+ * @param {string} providerOrModel
+ * @param {string} [maybeModel]
  */
-async function setModel(model) {
-  if (!model) {
-    throw new Error('Model is required. Usage: nullcommits config set-model claude-sonnet-4-6');
+async function setModel(providerOrModel, maybeModel) {
+  let provider = 'anthropic';
+  let model = providerOrModel;
+  if (maybeModel) {
+    provider = String(providerOrModel).toLowerCase();
+    model = maybeModel;
   }
 
-  if (!model.startsWith('claude-')) {
+  if (!model) {
+    throw new Error('Model is required. Usage: nullcommits config set-model <provider> <model>');
+  }
+  if (!PROVIDER_NAMES.includes(provider)) {
+    throw new Error(`Unknown provider "${provider}". Valid: ${PROVIDER_NAMES.join(', ')}`);
+  }
+
+  if (provider === 'anthropic' && !model.startsWith('claude-')) {
     console.log('⚠️  Warning: model does not start with "claude-". Make sure this is a valid Anthropic model ID.');
   }
 
-  saveAnthropicModel(model);
+  saveProviderModel(provider, model);
 
   return {
     success: true,
+    provider,
     model,
     path: CONFIG_FILE
   };
 }
 
 /**
- * Show the current Anthropic model
+ * Show every provider's model with where it came from
  */
 async function showModel() {
-  const model = getAnthropicModel();
+  return { models: getProviderModels() };
+}
+
+/**
+ * Set the provider fallback order
+ * @param {string} list - Comma separated provider names
+ */
+async function setProviders(list) {
+  if (!list) {
+    throw new Error(`Provider list is required. Usage: nullcommits config set-providers ${DEFAULT_PROVIDERS.join(',')}`);
+  }
+  const providers = saveProviders(list);
+  return { success: true, providers, path: CONFIG_FILE };
+}
+
+/**
+ * Show the provider fallback order
+ */
+async function showProviders() {
+  const config = loadConfig();
   return {
-    model,
-    default: DEFAULT_ANTHROPIC_MODEL,
-    isDefault: model === DEFAULT_ANTHROPIC_MODEL
+    providers: config.providers,
+    source: config.sources.providers || 'default',
+    default: DEFAULT_PROVIDERS
   };
 }
 
@@ -139,6 +184,8 @@ module.exports = {
   setAnthropicKey,
   setModel,
   showModel,
+  setProviders,
+  showProviders,
   setDiffBudget,
   showDiffBudget
 };

@@ -1,12 +1,16 @@
 const Anthropic = require('@anthropic-ai/sdk');
-const { loadConfig, loadTemplate, getAnthropicModel, AUTHORSHIP_STRIP_INSTRUCTION } = require('./config');
+const { loadConfig, loadTemplate } = require('./config');
+const { FULL_SYSTEM_PROMPT, fillTemplate, cleanMessage } = require('./prompt');
+const { ProviderExhaustedError, ProviderUnavailableError } = require('./cli-provider');
 
 /**
- * Stable system prompt. Combined with the authorship policy, this forms the
- * cache prefix that never changes between commits, so it can be served from
- * the prompt cache on repeated requests.
+ * Whether this provider can be attempted.
+ * @param {Object} config
+ * @returns {boolean}
  */
-const SYSTEM_PROMPT = 'You are a helpful assistant that generates clear, informative git commit messages. You respond only with the commit message itself, no explanations or markdown formatting. The only author of the commit is the person making it: never add, preserve, or invent co-authorship, "Co-Authored-By"/"Signed-off-by" trailers, or any credit to another person, company, or tool. Strip all such attribution from the message.';
+function isConfigured(config) {
+  return Boolean(config.anthropicApiKey);
+}
 
 /**
  * Placeholders that hold per-commit (volatile) data. Everything in the template
@@ -39,7 +43,9 @@ function splitTemplate(template) {
 }
 
 /**
- * Generate an enhanced commit message using Claude
+ * Generate an enhanced commit message using the Anthropic API (pay-as-you-go
+ * fallback). The stable system prompt + template instructions are marked for
+ * prompt caching so repeated commits only pay for the diff.
  * @param {string} originalMessage - The original commit message from the user
  * @param {string} diff - The git diff of staged changes
  * @param {string} multiLineInstruction - Optional instruction for multi-line commits
@@ -47,8 +53,11 @@ function splitTemplate(template) {
  */
 async function generateCommitMessage(originalMessage, diff, multiLineInstruction = '') {
   const config = loadConfig();
+  if (!config.anthropicApiKey) {
+    throw new ProviderUnavailableError('No Anthropic API key configured');
+  }
   const templateResult = loadTemplate();
-  const model = config.anthropicModel || getAnthropicModel();
+  const model = config.anthropicModel;
 
   const client = new Anthropic({
     apiKey: config.anthropicApiKey
@@ -57,10 +66,7 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
   // Split the template so the stable instructions can be cached while only the
   // volatile per-commit data (original message + diff) is sent uncached.
   const { instructions, data } = splitTemplate(templateResult.content);
-  const volatile = data
-    .replace('{{ORIGINAL_MESSAGE}}', originalMessage)
-    .replace('{{DIFF}}', diff)
-    .replace('{{MULTI_LINE_INSTRUCTION}}', multiLineInstruction);
+  const volatile = fillTemplate(data, originalMessage, diff, multiLineInstruction);
 
   // Cache prefix #1: the system prompt + authorship policy. The authorship
   // policy is appended unconditionally so it applies no matter which template
@@ -69,7 +75,7 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
   const system = [
     {
       type: 'text',
-      text: SYSTEM_PROMPT + '\n' + AUTHORSHIP_STRIP_INSTRUCTION,
+      text: FULL_SYSTEM_PROMPT,
       cache_control: { type: 'ephemeral' }
     }
   ];
@@ -99,25 +105,25 @@ async function generateCommitMessage(originalMessage, diff, multiLineInstruction
       ]
     });
 
-    const text = message.content[0]?.text;
+    const text = cleanMessage(message.content[0]?.text);
 
     if (!text) {
       throw new Error('No response received from Claude');
     }
 
-    // Clean up the message - remove any quotes if AI wrapped it
-    return text.trim().replace(/^["']|["']$/g, '');
+    return text;
   } catch (error) {
     if (error.status === 401) {
-      throw new Error('Invalid Anthropic API key. Please check your configuration.');
+      throw new ProviderUnavailableError('Invalid Anthropic API key. Please check your configuration.');
     }
-    if (error.status === 429) {
-      throw new Error('Anthropic API rate limit exceeded. Please try again later.');
+    if (error.status === 429 || error.status === 402 || /credit balance|billing/i.test(error.message || '')) {
+      throw new ProviderExhaustedError(`Anthropic API rate limit or credit exhausted: ${error.message}`);
     }
     throw new Error(`Anthropic API error: ${error.message}`);
   }
 }
 
 module.exports = {
-  generateCommitMessage
+  generateCommitMessage,
+  isConfigured
 };

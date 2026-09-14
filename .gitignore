@@ -18,3 +18,5 @@ Thumbs.db
 
 # Package lock (optional - remove if you want to commit it)
 package-lock.json
+# Local environment (loaded by the hook)
+.env

@@ -1,7 +1,7 @@
 {
   "name": "nullcommits",
-  "version": "2.0.1",
-  "description": "AI-powered git commit message enhancer using Claude Sonnet & GPT-5.4",
+  "version": "2.1.0",
+  "description": "AI-powered git commit message generator: Claude Code / Codex subscriptions first, Anthropic / OpenAI APIs as fallback",
   "main": "bin/nullcommits.js",
   "bin": {
     "nullcommits": "bin/nullcommits.js"
@@ -18,7 +18,10 @@
     "anthropic",
     "claude",
     "commit-message",
-    "hook"
+    "hook",
+    "codex",
+    "claude-code",
+    "subscription"
   ],
   "author": "KeysForTheWin <steve@nonlocal.ca>",
   "license": "MIT",
@@ -41,6 +44,6 @@
     "openai": "^6.9.1"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.12.0"
   }
 }

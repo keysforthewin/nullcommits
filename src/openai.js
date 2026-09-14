@@ -1,8 +1,20 @@
 const OpenAI = require('openai');
-const { loadConfig, loadTemplate, AUTHORSHIP_STRIP_INSTRUCTION } = require('./config');
+const { loadConfig } = require('./config');
+const { buildPrompt, cleanMessage } = require('./prompt');
+const { ProviderExhaustedError, ProviderUnavailableError } = require('./cli-provider');
 
 /**
- * Generate an enhanced commit message using GPT-5.4
+ * Whether this provider can be attempted.
+ * @param {Object} config
+ * @returns {boolean}
+ */
+function isConfigured(config) {
+  return Boolean(config.apiKey);
+}
+
+/**
+ * Generate an enhanced commit message using the OpenAI API (pay-as-you-go
+ * fallback). Model defaults to a cheap tier; see DEFAULT_OPENAI_MODEL.
  * @param {string} originalMessage - The original commit message from the user
  * @param {string} diff - The git diff of staged changes
  * @param {string} multiLineInstruction - Optional instruction for multi-line commits
@@ -10,55 +22,42 @@ const { loadConfig, loadTemplate, AUTHORSHIP_STRIP_INSTRUCTION } = require('./co
  */
 async function generateCommitMessage(originalMessage, diff, multiLineInstruction = '') {
   const config = loadConfig();
-  const templateResult = loadTemplate();
+  if (!config.apiKey) {
+    throw new ProviderUnavailableError('No OpenAI API key configured');
+  }
+  const { system, user } = buildPrompt(originalMessage, diff, multiLineInstruction);
+  const model = config.openaiModel;
 
-  const openai = new OpenAI({
-    apiKey: config.apiKey
-  });
-
-  // Build the prompt by combining template with actual data. The authorship
-  // policy is appended unconditionally so it applies no matter which template
-  // (local, global, or bundled) is in use and cannot be overridden away.
-  const prompt = templateResult.content
-    .replace('{{ORIGINAL_MESSAGE}}', originalMessage)
-    .replace('{{DIFF}}', diff)
-    .replace('{{MULTI_LINE_INSTRUCTION}}', multiLineInstruction)
-    + '\n' + AUTHORSHIP_STRIP_INSTRUCTION;
+  const openai = new OpenAI({ apiKey: config.apiKey });
 
   try {
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5.4',
+      model,
       messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant that generates clear, informative git commit messages. You respond only with the commit message itself, no explanations or markdown formatting. The only author of the commit is the person making it: never add, preserve, or invent co-authorship, "Co-Authored-By"/"Signed-off-by" trailers, or any credit to another person, company, or tool. Strip all such attribution from the message.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+        { role: 'system', content: system },
+        { role: 'user', content: user }
       ]
     });
 
-    const message = completion.choices[0]?.message?.content;
-    
+    const message = cleanMessage(completion.choices[0]?.message?.content);
+
     if (!message) {
-      throw new Error('No response received from GPT-5.4');
+      throw new Error(`No response received from ${model}`);
     }
 
-    // Clean up the message - remove any quotes if AI wrapped it
-    return message.trim().replace(/^["']|["']$/g, '');
+    return message;
   } catch (error) {
-    if (error.code === 'invalid_api_key') {
-      throw new Error('Invalid OpenAI API key. Please check your configuration.');
+    if (error.code === 'invalid_api_key' || error.status === 401) {
+      throw new ProviderUnavailableError('Invalid OpenAI API key. Please check your configuration.');
     }
-    if (error.code === 'insufficient_quota') {
-      throw new Error('OpenAI API quota exceeded. Please check your billing.');
+    if (error.code === 'insufficient_quota' || error.status === 429) {
+      throw new ProviderExhaustedError(`OpenAI API quota/rate limit exceeded: ${error.message}`);
     }
     throw new Error(`OpenAI API error: ${error.message}`);
   }
 }
 
 module.exports = {
-  generateCommitMessage
+  generateCommitMessage,
+  isConfigured
 };
